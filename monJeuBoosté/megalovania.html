@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+    body {
+            text-align: center;
+        }
+
+        canvas {
+            border: 1px solid white;
+            cursor: pointer;
+            background: black;
+        }
+
+        h2 {
+            color: #0b5d69;
+            font: bold italic 18px Calibri;
+        }
+        
+    </style>
+</head>
+
+<body>
+   <!-- Créer la balise canvas et modifier ensuite ses dimensions -->
+    <canvas width="1200" height="900"></canvas>
+    
+    <script>
+     //Récupérer la balise canvas et définir son contexte de dessin en 2d
+        let leCanvas = document.querySelector("canvas");
+        let ctx = leCanvas.getContext("2d");
+        //définir les musiques
+        let determination = new Audio();
+        determination.src = "son/determination.mp3";
+        let megalovania = new Audio();
+        megalovania.src = "son/megalovania.mp3";
+        //Variable pour générer le son
+        let determinationJoue = false;
+        let megalovaniaJoue = false;
+        //Dessiner l'image de départ
+        let imgIntro = new Image();
+        imgIntro.src = "images/imgIntro.jpg";
+        ctx.drawImage(imgIntro,0,0);
+        
+        let sans = new Image();
+        sans.src = "images/Sans_undertale.jpg"
+        let zoneJeu = {
+            img: new Image(),
+            posX: leCanvas.width/2 - 250,
+            posY: leCanvas.height/2,
+            largeur: 500,
+            hauteur: 300
+        }
+        zoneJeu.img.src = "images/zoneDeJeu.png";
+        
+     //l'image du premier objet, qu'on pourra déplacer avec les touches
+        let coeur = {
+        img: new Image(),
+        posX: leCanvas.width/2 - 50,
+        posY: leCanvas.height/2 + 100,
+        largeur: 100,
+        hauteur: 100,
+        vitesse: 100,
+        posXMax: zoneJeu.posX + 400,
+        posYMax: leCanvas.height/2 + 200,
+        posXMin: leCanvas.width/2 - 250,
+        posYMin: leCanvas.height/2,
+        pv: 10
+        } 
+        coeur.img.src = "images/coeur.png";
+        
+        
+        let skull = {
+            img: new Image(),
+            largeur: 100,
+            hauteur: 145,
+            nbVignettes: 20,
+            indexVignette: 0,
+            sourceX: 0,
+            posX: leCanvas.width/2-250,
+            posY: leCanvas.height/2-145
+        }
+        skull.img.src = "images/skull.png";
+        
+        /*let skullH = {
+            img: new Image(),
+            largeur: 145,
+            hauteur: 100,
+            nbVignettes: 20,
+            indexVignette: 0,
+            sourceX: 0,
+            posX: leCanvas.width/2+250,
+            posY: leCanvas.height/2+100
+        }
+        skull.img.src = "images/skullH.png";*/
+        
+        let attaque ={
+            img: new Image(),
+            largeur:0,
+            hauteur:0,
+            posY:-1
+        }
+        attaque.img.src ="images/rayon.png";
+        //appeler la fonction pour dessiner l'intro
+        imgIntro.addEventListener("load", initialiserJeu)
+        
+        //appeler la fonction pour démarer la musique
+        //musique();
+        
+        //Variable pour gérer l'affichage du jeu
+        let debutJeu = false;
+        let temps = 0;
+        let intervalIDMinuterie; //Sera défini quand l'utilisateur partira le jeu
+        let intervalIDActualiserJeu; //Sera défini quand l'utilisateur partira le jeu
+        let intervalIDAnimerSkull;
+        let intervalIDAnimerSkullH; //Sera défini quand l'utilisateur partira le jeu
+        let intervalIDTirer; //Sera défini à la vignette 10...
+        
+        //Pour savoir si les touches fléchées du clavier sont appuyées
+        let flecheGauche = false;
+        let flecheDroite = false;
+        let flecheHaut = false;
+        let flecheBas = false;
+        
+        //Pour savoir si les touches ont été appuyées
+        let droite = true;
+        let gauche = false;
+        let haut = false;
+        let bas = false;
+        
+        //Écouteur sur le document pour détecter si des touches de clavier sont appuyées 
+        document.addEventListener("keydown", presserTouche);
+        document.addEventListener("keyup", relacherTouche);
+        leCanvas.addEventListener("click", musique);
+        
+        
+        //********** SECTIONS DES FONCTIONS **********//
+        
+        
+        function initialiserJeu(){
+            ctx.drawImage(imgIntro, 0, 0);
+        }
+        function musique(){
+            if(determinationJoue == false){
+                determination.loop = true;
+                determination.play();
+            }else {
+                determination.pause();
+            }
+            determinationJoue = !determinationJoue;
+            
+        }
+        function musique2(){
+            if(determinationJoue == true){
+                determination.pause();
+                determinationJoue = false;
+            }
+            if(megalovaniaJoue == false){
+                megalovania.loop = true;
+                megalovania.play();
+            }else {
+                megalovania.pause();
+            }
+            megalovaniaJoue = !megalovaniaJoue;
+            
+        }
+        
+        
+        // Détecte quelles touches sont appuyées et recommence la partie
+        
+        
+        function presserTouche(event) {
+            //Enregistrer si une touche gauche/droite est pressée
+            if (event.keyCode == 39 || event.keyCode == 68) { //flèche droite
+                flecheDroite = true;
+                droite = false;
+                if(droite == false){
+                    droite = true;
+                }
+            }  
+            if (event.keyCode == 37 || event.keyCode == 65) { //flèche gauche
+                flecheGauche = true;
+            }
+
+            //Enregistrer si une touche haut/bas est pressée
+            if (event.keyCode == 38 || event.keyCode == 87) { //flèche haut
+                flecheHaut = true;
+            }
+            if (event.keyCode == 40 || event.keyCode == 83) { //flèche bas
+                flecheBas = true;
+            }
+        }
+
+
+        function relacherTouche(event) {
+            //Enregistrer si une touche gauche/droite est relâchée
+            if (event.keyCode == 39 || event.keyCode == 68) { //flèche droite
+                /*if(coeur.posX < coeur.posXMax){
+                    coeur.posX += coeur.vitesse;
+                
+                }*/
+            flecheDroite = false;
+            }
+            
+            if (event.keyCode == 37 || event.keyCode == 65) { //flèche gauche
+                /*if(coeur.posX > coeur.posXMin){
+                    coeur.posX -= coeur.vitesse;
+                
+                }*/
+                flecheGauche = false;
+            }
+
+            //Enregistrer si une touche haut/bas est relâchée
+            if (event.keyCode == 38 || event.keyCode == 87) { //flèche haut
+                /*if(coeur.posY > coeur.posYMin){
+                    coeur.posY -= coeur.vitesse;               
+            }*/
+                flecheHaut = false;
+            }
+            if (event.keyCode == 40 || event.keyCode == 83) { //flèche bas
+                /*if(coeur.posY < coeur.posYMax){
+                    coeur.posY += coeur.vitesse;
+                }*/
+                flecheBas = false;
+            }
+            
+            
+            //On part le jeu si le joueur appuie sur la touche Enter
+            //On part le setInterval qui actualise le jeu
+            //On mémorise que le jeu est débuté
+            if (event.keyCode == 49 && debutJeu == false) {
+                debutJeu = true;
+                //Actualiser le jeu
+                intervalIDActualiserJeu = setInterval(actualiserJeu, 1000/12);
+               //Actualiser Skull
+                intervalIDAnimerSkull = setInterval(animerSkull, 1000 / 12);
+                //intervalIDAnimerSkullH = setInterval(animerSkullH, 1000 / 12);
+                //Partir la minuterie
+                intervalIDMinuterie = setInterval(minuterie, 1000/ 1);
+                //Arrêter l'écoute pour la première musique
+                leCanvas.removeEventListener("click", musique);
+                musique2();
+                leCanvas.addEventListener("click", musique2);
+                        
+            }/* else if (event.keyCode == 50 && debutJeu == false) {
+                            debutJeu = true;
+                //Actualiser le jeu
+                intervalIDActualiserJeu = setInterval(actualiserJeu, 1000 / 12);
+                //Actualiser Skull
+                intervalIDAnimerSkull = setInterval(animerSkull, 1000 / 24);
+                //intervalIDAnimerSkullH = setInterval(animerSkullH, 1000/24);
+
+                //Arrêter l'écoute pour la première musique
+                leCanvas.removeEventListener("click", musique);
+                musique2();
+                leCanvas.addEventListener("click", musique2);
+            } else if (event.keyCode == 51 && debutJeu == false) {
+                            debutJeu = true;
+                //Actualiser le jeu
+                intervalIDActualiserJeu = setInterval(actualiserJeu, 1000 / 12);
+                //Actualiser Skull
+                intervalIDAnimerSkull = setInterval(animerSkull, 1000 / 36);
+                //intervalIDAnimerSkullH = setInterval(animerSkullH, 1000/36);
+
+                //Arrêter l'écoute pour la première musique
+                leCanvas.removeEventListener("click", musique);
+                musique2();
+                leCanvas.addEventListener("click", musique2);
+            }*/
+        }
+        //Détecte si l'objet 1 touche l'objet 2
+        function detecterCollision(imgObjet2, posXObjet2, posYObjet2) {
+
+            if (coeur.posX < posXObjet2 + imgObjet2.width &&
+                coeur.posX + coeur.largeur > posXObjet2 &&
+                coeur.posY < posYObjet2 + imgObjet2.height &&
+                coeur.posY + coeur.hauteur > posYObjet2) {
+
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        //Actualiser l'affichage des objets et les actions du jeu
+        function actualiserJeu() {
+            //Effacer le contenu actuel du contexte de rendu du canvas
+            ctx.clearRect(0, 0, leCanvas.width, leCanvas.height);
+            
+            //Faire apparaître le skull - Géré autrement - uniquement le dessiner
+            //animerSkull();
+            ctx.drawImage(skull.img, skull.sourceX, 0, skull.largeur, skull.hauteur, skull.posX, skull.posY, skull.largeur, skull.hauteur);
+            
+            //animerSkullH();
+            //ctx.drawImage(skullH.img, skullH.sourceX, 0, skullH.largeur, skullH.hauteur, skullH.posX, skullH.posY, skullH.largeur, skullH.hauteur);
+            //Déplacer le personnage
+            deplacerPersonnage();
+            
+            //Dessiner Sans
+            ctx.drawImage(sans, leCanvas.width/2 - sans.width/2, 0)
+
+            //Dessiner la zone de jeu
+            ctx.drawImage(zoneJeu.img, zoneJeu.posX, zoneJeu.posY);
+            
+            
+            
+            //********Détecter Colisions**************//
+
+            //Vérifie si le coeur et le skull se touchent
+            let siContactCoeurEtSkull = detecterCollision(attaque.img, skull.posX, attaque.posY);
+
+            //si contacte alors le personnge perd le scor de la vie et change l'image du personnage 
+            if (siContactCoeurEtSkull == true) {
+                //Changer l'image pour le coeur brisé
+                //ctx.drawImage(imgObjet1EnRouge, posXObjet1, posYObjet1);
+
+                //Diminuer les pv
+                //coeur.pv -= 10;
+                clearInterval(intervalIDMinuterie);
+                megalovania.pause();
+                musique();
+                console.log("minuterie arrêté")
+                
+                
+            }
+            //si le joueur est à court de PV on arrête le jeu
+            if (siContactCoeurEtSkull == true && coeur.pv <= 0){
+                //arrêter l'actualisation du jeu, en arrêtant le setInterval()
+                clearInterval(intervalIDActualiserJeu);
+            }
+
+            //Afficher le score
+            //afficherScore();
+            
+        }
+            
+            //Fonction pour déplacer le personnage
+        function deplacerPersonnage() {
+            
+
+            //Calculer les futures positions de l'objet1
+            if (flecheDroite) {
+                if(coeur.posX < coeur.posXMax){
+                    coeur.posX += coeur.vitesse;              
+                }
+            }
+            if (flecheGauche) {
+                if(coeur.posX > coeur.posXMin){
+                    coeur.posX -= coeur.vitesse;
+                }
+            }
+
+            if (flecheHaut) {
+                if(coeur.posY > coeur.posYMin){
+                    coeur.posY -= coeur.vitesse;               
+            }
+            }
+            if (flecheBas) {
+                if(coeur.posY < coeur.posYMax){
+                    coeur.posY += coeur.vitesse;
+                }
+            }
+            
+            ctx.drawImage(coeur.img, coeur.posX, coeur.posY)
+        }
+            
+            
+            
+            
+            
+            
+            //Fonction npour animer la feuille de sprite du skull
+        function animerSkull() {
+            //Effacer le contenu actuel du contexte de rendu du canvas
+            //ctx.clearRect(0, 0, leCanvas.width, leCanvas.height);
+
+            //Gérer adéquatement l'affichage et l'animation de la feuille de sprites du skull
+            
+            
+            //Incrémenter et gérer l'index de la vignette à afficher
+            skull.indexVignette ++;
+            console.log(skull.indexVignette);
+            
+            skull.sourceX = skull.indexVignette*skull.largeur;
+            
+            //Quand skull est rendu à la vignette 10...on tire pendant .5 secondes
+            if (skull.indexVignette == skull.nbVignettes-1) {
+                //Dessiner l'image de l'attaque
+                attaque.largeur = 100;
+                attaque.hauteur = 300;
+                attaque.posY = leCanvas.height/2;
+                ctx.drawImage(attaque.img, skull.posX, attaque.posY);
+                //Arreter l'animation de Skull
+                console.log("Arreter l'animation de skull");
+                clearInterval(intervalIDAnimerSkull);
+
+                //Partir l'animation pour le tir
+                intervalIDTirer = setInterval(tirer, 1000 / 60);
+
+                //Les tirs durent 4 secondes
+                setTimeout(arreterLesTirs, 500);
+
+            }
+            
+            //Si toute les Images ont été parcourues alors on remet l'index à 0 pour recommencer la séquence
+            if(skull.indexVignette == skull.nbVignettes){
+                
+                skull.posX = (leCanvas.width/2-350) + (Math.ceil(Math.random()*5)*100);
+                
+                skull.indexVignette = 0;
+            } else{
+                attaque.largeur = 0;
+                attaque.hauteur = 0;
+                attaque.posY = -1;
+            }
+        }
+        function minuterie() {
+            console.log("timer démaré");
+            temps += 0.01;
+            //Ici on tire...
+            ctx.font = "bold 24px Arial";
+            ctx.fillStyle = "red";
+            ctx.textBaseline = "top";
+            ctx.textAlign = "left";
+            ctx.fillText("temps de survie: " + temps, leCanvas.width / 2, 0);
+
+        }
+        function tirer() {
+            /*console.log("tirer");
+            //Ici on tire...
+            ctx.font = "bold 24px Arial";
+            ctx.fillStyle = "red";
+            ctx.textBaseline = "top";
+            ctx.textAlign = "center";
+            ctx.fillText("TIR en cours", leCanvas.width / 2, 0);*/
+
+        }
+
+        function arreterLesTirs() {
+            //Arrêter les tirs
+            clearInterval(intervalIDTirer);
+            //Repartir l'animation de Skull
+            intervalIDAnimerSkull = setInterval(animerSkull, 1000 / 24);
+        }
+        /*function animerSkullH() {
+            //Effacer le contenu actuel du contexte de rendu du canvas
+            ctx.clearRect(0, 0, leCanvas.width, leCanvas.height);
+
+            //Gérer adéquatement l'affichage et l'animation de la feuille de sprites du diamant
+            ctx.drawImage(skullH.img, skullH.sourceX, 0, skullH.largeur, skullH.hauteur, skullH.posX, skullH.posY, skullH.largeur, skullH.hauteur);
+            
+            //Incrémenter et gérer l'index de la vignette à afficher
+            skullH.indexVignette ++;
+            console.log(skullH.indexVignette);
+            
+            skullH.sourceX = skullH.indexVignette*skullH.largeur;
+ 
+            //Si toute les Images ont été parcourues alors on remet l'index à 0 pour recommencer la séquence
+            if(skullH.indexVignette == skullH.nbVignettes){
+                skullH.posX = (leCanvas.width/2+250) + (Math.ceil(Math.random()*2)*100);
+                skullH.indexVignette = 0;
+            }
+        }*/
+        
+    </script>
+</body>
+</html>
